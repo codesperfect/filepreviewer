@@ -1,10 +1,25 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs').promises;
 
 const app = express();
 const port = 3080;
 
 app.use(cors());
+
+async function readPDFAsBase64(filePath) {
+  try {
+      // Read the file
+      const data = await fs.readFile(filePath);
+
+      // Convert the file data to a base64 string
+      const base64 = data.toString('base64');
+      return base64;
+  } catch (err) {
+      console.error('Error reading file:', err);
+      throw err; // Rethrow the error to be handled by the caller
+  }
+}
 
 app.get('/fetch-data/:docid', async (req, res) => {
   try {
@@ -36,6 +51,20 @@ app.get('/fetch-data/:docid', async (req, res) => {
     res.status(500).send('Error fetching data');
   }
 });
+
+app.get('/fetch-data/', async (req, res) => {
+  const docId = req.params.docid;
+  const filePath = `file.pdf`; // Construct the file path based on the document ID
+
+  try {
+      const base64Data = await readPDFAsBase64(filePath);
+      res.json({ Document: base64Data });
+  } catch (err) {
+      res.status(500).json({ error: 'Error reading file' });
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

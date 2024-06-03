@@ -12,7 +12,7 @@ const PdfPreview = () => {
 
  
   useEffect(() => {
-    setDocuments(["24101","24102","24103","24104","24105"]);
+    setDocuments(["24101"]);
     // fetch('http://localhost:3080/fetch-data/24101') // Replace with your Node.js server endpoint
     //   .then(response => response.json())
     //   .then(data => {
@@ -25,7 +25,7 @@ const PdfPreview = () => {
 
   const handleShow = (docid) => {
     setloadModel(true);
-    fetch('http://localhost:3080/fetch-data/'+docid) // Replace with your Node.js server endpoint
+    fetch('http://localhost:3080/fetch-data') // Replace with your Node.js server endpoint
       .then(response => response.json())
       .then(data => {
         if (data.Document) {
@@ -49,18 +49,19 @@ const PdfPreview = () => {
          <CircularProgress disableShrink />
          <h3>Loading File</h3>
          </>)}
+
     </div>
     <div style={{display:'flex',justifyContent:'center',alignItems:'center',marginTop:'5%'}}>    
         {documents.map(docs=>(
             <Button variant="outlined" onClick={()=>handleShow(docs)} style={{margin:'10px'}}>
-                Show File id {docs}
+                Show File
             </Button>
         ))}
      </div>
       <Modal show={showModal} handleClose={handleClose} docid={currentdocid}>
         {pdfData && (
           <iframe
-            src={`data:application/pdf;base64,${pdfData}`}
+            src={`data:application/jpg;base64,${pdfData}`}
             width="100%"
             height="500px"
             title="Preview"
