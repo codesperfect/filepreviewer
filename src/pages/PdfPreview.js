@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Modal from '../Modal';
 import Spinner from 'react-bootstrap/Spinner';
+// import { Modal, Button } from 'react-bootstrap';
+// import FilePreviewer from 'react-file-previewer';
 import { Button, CircularProgress, LinearProgress } from '@mui/material';
 
 const PdfPreview = () => {
@@ -9,7 +11,7 @@ const PdfPreview = () => {
   const [loadModel, setloadModel] = useState(false);
   const [documents,setDocuments] = useState([]);
   const [currentdocid,setCurrentDocid] = useState(null);
-
+  const [currentDocId, setCurrentDocId] = useState('');
  
   useEffect(() => {
     setDocuments(["24101"]);
@@ -39,7 +41,7 @@ const PdfPreview = () => {
    
   }
   const handleClose = () => setShowModal(false);
-
+  
   return (
     <div>
     <h1 style={{display:'flex',justifyContent:'center',alignItems:'center',marginTop:'5%'}}>Files to Preview</h1>
@@ -53,11 +55,16 @@ const PdfPreview = () => {
     </div>
     <div style={{display:'flex',justifyContent:'center',alignItems:'center',marginTop:'5%'}}>    
         {documents.map(docs=>(
-            <Button variant="outlined" onClick={()=>handleShow(docs)} style={{margin:'10px'}}>
+            <Button variant="outlined" 
+            onClick={()=>handleShow(docs)}
+            // onMouseEnter={handleShow(docs)}
+            // onMouseLeave={handleClose()}
+            style={{margin:'10px'}}>
                 Show File
             </Button>
         ))}
      </div>
+
       <Modal show={showModal} handleClose={handleClose} docid={currentdocid}>
         {pdfData && (
           <iframe

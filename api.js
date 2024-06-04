@@ -1,25 +1,61 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
-
+const { fromPath } = require('pdf2pic');
+const { PDFDocument } = require('pdf-lib');
+const sharp = require('sharp');
+const puppeteer = require('puppeteer');
 const app = express();
 const port = 3080;
+const path = require('path');
+
+const { createCanvas, loadImage } = require('canvas');
+
+const options = {
+	density: 100,
+	saveFilename: 'untitled',
+	format: 'png',
+	width: 600,
+	height: 600,
+};
+const convert = fromPath('file.pdf', options);
+const pageToConvertAsImage = 1;
 
 app.use(cors());
 
-async function readPDFAsBase64(filePath) {
-  try {
-      // Read the file
-      const data = await fs.readFile(filePath);
 
-      // Convert the file data to a base64 string
-      const base64 = data.toString('base64');
-      return base64;
-  } catch (err) {
-      console.error('Error reading file:', err);
-      throw err; // Rethrow the error to be handled by the caller
+const readPdfAndConvertFirstPageToImage = async (pdfPath) => {
+  try {
+    const options = {
+      density: 100, // output pixels per inch
+      saveFilename: 'untitled', // output file name
+      savePath: './output', // output file location
+      format: 'png', // output file format
+      width: 600, // output width
+      height: 600 // output height
+    };
+
+    const storeAsImage = fromPath(pdfPath, options);
+    const pageToConvertAsImage = 1;
+
+    const response = await storeAsImage(pageToConvertAsImage);
+
+    if (response ) {
+      // Read the generated image file
+      const imagePath = path.resolve(response.path);
+      const imageData = await fs.readFile(imagePath);
+
+      // Convert image data to base64
+      const base64Image = imageData.toString('base64');
+      return base64Image;
+    }  else {
+      throw new Error('Failed to convert PDF to image');
+    }
+  } catch (error) {
+    console.error('Error converting PDF to image:', error);
+    throw error;
   }
-}
+};
 
 app.get('/fetch-data/:docid', async (req, res) => {
   try {
@@ -57,13 +93,41 @@ app.get('/fetch-data/', async (req, res) => {
   const filePath = `file.pdf`; // Construct the file path based on the document ID
 
   try {
-      const base64Data = await readPDFAsBase64(filePath);
+      const base64Data = await getFirstPageAsImage(filePath);
       res.json({ Document: base64Data });
   } catch (err) {
       res.status(500).json({ error: 'Error reading file' });
   }
 });
 
+app.get('/fetch-image/', async (req, res) => {
+  const docId = req.params.docid;
+  const filePath = `invoice.pdf`; // Construct the file path based on the document ID
+
+  try {
+      const base64Data = await readPdfAndConvertFirstPageToImage(filePath);
+      res.json({ Document: base64Data , id:'file.pdf'});
+  } catch (err) {
+      res.status(500).json({ error: 'Error reading file' });
+  }
+});
+
+const files = [{name:'invoice.pdf',type:'pdf',id:0},{name:'image.jpg',type:'jpg',id:1},{name:'image.png',type:'png',id:2}]
+
+app.get('/download-file/:id', (req, res) => {
+  var fileid = req.params.id;
+  const filePath = path.join(__dirname, files[fileid].name); // Adjust the path to your file
+  res.download(filePath, files[fileid].name, (err) => {
+    if (err) {
+      console.error('Error downloading file:', err);
+      res.status(500).send('Error downloading file');
+    }
+  });
+});
+
+app.get('/files', async(req,res)=>{
+  res.json(files);
+})
 
 
 app.listen(port, () => {
