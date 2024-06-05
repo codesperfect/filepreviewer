@@ -1,135 +1,443 @@
 const express = require('express');
-const cors = require('cors');
-const fs = require('fs').promises;
-const { fromPath } = require('pdf2pic');
-const { PDFDocument } = require('pdf-lib');
-const sharp = require('sharp');
-const puppeteer = require('puppeteer');
+const axios = require('axios');
 const app = express();
 const port = 3080;
-const path = require('path');
+const morgan = require('morgan');
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-const { createCanvas, loadImage } = require('canvas');
+app.use(morgan('combined'));
 
-const options = {
-	density: 100,
-	saveFilename: 'untitled',
-	format: 'png',
-	width: 600,
-	height: 600,
+// Common headers
+const commonHeaders = {
+  'authority': 'arcticom.invokeinc.com',
+  'accept': 'application/json',
+  'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,ta;q=0.7',
+  'authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwic2NwIjoidXNlciIsImF1ZCI6bnVsbCwiaWF0IjoxNzE3NDkxMzgwLCJleHAiOjE3MTc1Nzc3ODAsImp0aSI6IjEwOWQ0ZDdhLThjZWQtNGVkMy1hNzE4LTJhNzRlMjkzZmNjMCJ9.Jgdq2HH6kjQSJOP-sLPD47LL_xiDzFIA-uXvUDuvmrc',
+  'cookie': 'JWT=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwic2NwIjoidXNlciIsImF1ZCI6bnVsbCwiaWF0IjoxNzE3NDkxMzgwLCJleHAiOjE3MTc1Nzc3ODAsImp0aSI6IjEwOWQ0ZDdhLThjZWQtNGVkMy1hNzE4LTJhNzRlMjkzZmNjMCJ9.Jgdq2HH6kjQSJOP-sLPD47LL_xiDzFIA-uXvUDuvmrc; ID=1',
+  'referer': 'https://arcticom.invokeinc.com/applications/35',
+  'sec-ch-ua': '"Google Chrome";v="111", "Not(A:Brand";v="8", "Chromium";v="111"',
+  'sec-ch-ua-mobile': '?1',
+  'sec-ch-ua-platform': '"Android"',
+  'sec-fetch-dest': 'empty',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-site': 'same-origin',
+  'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36',
+  'x-csrf-token': '9GMvKh6+Q95PIfzrOG4TjGXtHrECVZIYRpI34mtrTZBV0jGehl28bldnKBEzUhP2tvEfTawWNwYnRr6il52n6Q=='
 };
-const convert = fromPath('file.pdf', options);
-const pageToConvertAsImage = 1;
 
-app.use(cors());
+// Base URL
+const baseURL = 'https://arcticom.invokeinc.com/';
 
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
 
-const readPdfAndConvertFirstPageToImage = async (pdfPath) => {
+// Route to handle call_kpi_data request
+app.get('/api/arcticom/call_kpi_data', async (req, res) => {
+    console.log('call kpi data')
   try {
-    const options = {
-      density: 100, // output pixels per inch
-      saveFilename: 'untitled', // output file name
-      savePath: './output', // output file location
-      format: 'png', // output file format
-      width: 600, // output width
-      height: 600 // output height
-    };
-
-    const storeAsImage = fromPath(pdfPath, options);
-    const pageToConvertAsImage = 1;
-
-    const response = await storeAsImage(pageToConvertAsImage);
-
-    if (response ) {
-      // Read the generated image file
-      const imagePath = path.resolve(response.path);
-      const imageData = await fs.readFile(imagePath);
-
-      // Convert image data to base64
-      const base64Image = imageData.toString('base64');
-      return base64Image;
-    }  else {
-      throw new Error('Failed to convert PDF to image');
-    }
+    const response = await axios.get(`${baseURL}/api/arcticom/call_kpi_data`, {
+      params: {
+        application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+        ServiceArea: 'ALL',
+        customer: 'ALL',
+        userdef1a: 'ALL',
+        userdef2a: 'ALL',
+        locuserdef1a: 'ALL',
+        locuserdef2a: 'ALL',
+        addresscode: 'ALL',
+        userdef3a: 'ALL',
+        userdef4a: 'ALL',
+        ExcludeCompletedCallsWithOpenInvoice: 0
+      },
+      headers: commonHeaders
+    });
+    res.json(response.data);
   } catch (error) {
-    console.error('Error converting PDF to image:', error);
-    throw error;
+    console.error('Error making request:', error);
+    res.status(500).send('Internal Server Error');
   }
-};
+});
 
-app.get('/fetch-data/:docid', async (req, res) => {
+// New route to handle service_area_list request
+app.get('/api/arcticom/service_area_list', async (req, res) => {
   try {
-    var docid = req.params.docid;
-    const response = await fetch("https://arcticomaria.invokeinc.com/api/arcticom/call_attachment_doc_download?DocumentID="+docid+"&application_uuid=a068ed87-b4ad-47de-b350-a25b77834f10&session_id=43", {
-        "headers": {
-          "accept": "application/json",
-          "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,ta;q=0.7",
-          "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzIiwic2NwIjoidXNlciIsImF1ZCI6bnVsbCwiaWF0IjoxNzE2ODM5ODUxLCJleHAiOjE3MTY5MjYyNTEsImp0aSI6IjBkNDEyZjU2LTcxYzEtNDJhYi04MTkwLTA5MTIwNzExYjQwOCJ9._DmyMWWInKe1L6XFDhwLB5KBdi2ka8l62vkKWRoNk8U",
-          "sec-ch-ua": "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": "\"macOS\"",
-          "sec-fetch-dest": "empty",
-          "sec-fetch-mode": "cors",
-          "sec-fetch-site": "same-origin",
-          "x-csrf-token": "Qq7DibUhL4pNelqR5//MPyxCzZCxcDYKrn01O0ArbYJawxInOjsQ21qECfoqE97E/fr11NQXGBX2KY4MczR3Qw=="
+    const response = await axios.get(`${baseURL}/api/arcticom/service_area_list`, {
+      params: {
+        application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+      },
+      headers: commonHeaders
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error making request:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
+app.get('/api/arcticom/ac_manager_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/ac_manager_list`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
         },
-        "referrer": "https://arcticomaria.invokeinc.com/applications/40/activities/230531-0054",
-        "referrerPolicy": "strict-origin-when-cross-origin",
-        "body": null,
-        "method": "GET",
-        "mode": "cors",
-        "credentials": "include"
+        headers: commonHeaders
       });
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).send('Error fetching data');
-  }
-});
-
-app.get('/fetch-data/', async (req, res) => {
-  const docId = req.params.docid;
-  const filePath = `file.pdf`; // Construct the file path based on the document ID
-
-  try {
-      const base64Data = await getFirstPageAsImage(filePath);
-      res.json({ Document: base64Data });
-  } catch (err) {
-      res.status(500).json({ error: 'Error reading file' });
-  }
-});
-
-app.get('/fetch-image/', async (req, res) => {
-  const docId = req.params.docid;
-  const filePath = `invoice.pdf`; // Construct the file path based on the document ID
-
-  try {
-      const base64Data = await readPdfAndConvertFirstPageToImage(filePath);
-      res.json({ Document: base64Data , id:'file.pdf'});
-  } catch (err) {
-      res.status(500).json({ error: 'Error reading file' });
-  }
-});
-
-const files = [{name:'invoice.pdf',type:'pdf',id:0},{name:'image.jpg',type:'jpg',id:1},{name:'image.png',type:'png',id:2}]
-
-app.get('/download-file/:id', (req, res) => {
-  var fileid = req.params.id;
-  const filePath = path.join(__dirname, files[fileid].name); // Adjust the path to your file
-  res.download(filePath, files[fileid].name, (err) => {
-    if (err) {
-      console.error('Error downloading file:', err);
-      res.status(500).send('Error downloading file');
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
     }
   });
+
+
+app.get('/api/arcticom/expeditor_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/expeditor_list`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+app.get('/api/activities', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/activities`, {
+        params: {
+          page: 1,
+          'application_uuids[]': '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+app.get('/api/arcticom/user_call_history_by_appt', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/user_call_history_by_appt`, {
+        params: {
+          UserDef1a: 'ALL',
+          UserDef2a: 'ALL',
+          status: 'FOLLOWUP',
+          Service_Area: 'ALL',
+          CUSTNMBR: 'ALL',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+          ExcludeCompletedCallsWithOpenInvoice: 0
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/company_configs/show', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/company_configs/show`, {
+        params: {
+          company_id: 1,
+          table_id: '863763f2-9877-5713-8116-99932867411e'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+
+  // Page 2
+
+app.get('/api/arcticom/user_call_history_by_appt', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/user_call_history_by_appt`, {
+        params: {
+          UserDef1a: 'ALL',
+          UserDef2a: 'ALL',
+          status: 'FOLLOWUP',
+          Service_Area: 'ALL',
+          CUSTNMBR: 'ALL',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+          ExcludeCompletedCallsWithOpenInvoice: 0
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+  
+  // Page 3
+
+app.get('/api/arcticom/service_call_cost', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/service_call_cost`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+          ServiceCallID: '240603-0008'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/arcticom/service_call_appt', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/service_call_appt`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+          Service_Call_ID: '240603-0008'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/arcticom/user_service_call_history', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/user_service_call_history`, {
+        params: {
+          Customer_Number: 'ALL',
+          Address_Code: 'ALL',
+          Service_Call_ID: '240603-0008',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/arcticom/service_area_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/service_area_list`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/arcticom/expeditor_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/expeditor_list`, {
+        params: {
+          userDef: 'ALL',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+app.get('/api/arcticom/ac_manager_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/ac_manager_list`, {
+        params: {
+          userDef: 'ALL',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+       
+
+app.get('/api/arcticom/call_notes_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/call_notes_list`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069',
+          Service_Call_ID: '240603-0008'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+app.get('/api/arcticom/user_service_call_history', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/user_service_call_history`, {
+        params: {
+          Customer_Number: 'ALL',
+          Address_Code: 'ALL',
+          Service_Call_ID: '240603-0008',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+app.get('/api/arcticom/technician_info_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/technician_info_list`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+app.get('/api/arcticom/servicecall_1a', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/servicecall_1a`, {
+        params: {
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+app.get('/api/arcticom/service_call_res_notes', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/service_call_res_notes`, {
+        params: {
+          Service_Call_ID: '240603-0008',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+app.get('/api/arcticom/call_attachment_list', async (req, res) => {
+    try {
+      const response = await axios.get(`${baseURL}/api/arcticom/call_attachment_list`, {
+        params: {
+          ServiceCallID: '240603-0008',
+          application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+        },
+        headers: commonHeaders
+      });
+      res.json(response.data);
+    } catch (error) {
+      console.error('Error making request:', error);
+      res.status(500).send('Internal Server Error');
+    }
+});
+  
+
+app.get('/api/arcticom/service_call_appt', async (req, res) => {
+  try {
+    const response = await axios.get(`${baseURL}/api/arcticom/service_call_appt`, {
+      params: {
+        Service_Call_ID: '240603-0008',
+        application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+      },
+      headers: commonHeaders
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error making request:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-app.get('/files', async(req,res)=>{
-  res.json(files);
-})
+app.get('/api/arcticom/call_pricing_matrix_data', async (req, res) => {
+  try {
+    const response = await axios.get(`${baseURL}/api/arcticom/call_pricing_matrix_data`, {
+      params: {
+        ServiceCallID: '240603-0008',
+        application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+      },
+      headers: commonHeaders
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error making request:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 
+
+// Download
+
+app.get('/api/arcticom/call_attachment_doc_download', async (req, res) => {
+  console.log(req.query);
+  try {
+    const response = await axios.get(`${baseURL}/api/arcticom/call_attachment_doc_download`, {
+      params: {
+        DocumentID: req.query.DocumentID,
+        application_uuid: '98c75d33-86f9-44ac-83d9-b28ed490f069'
+      },
+      headers: commonHeaders
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error making request:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+
+
+// Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
