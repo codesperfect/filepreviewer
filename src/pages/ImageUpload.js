@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from 'react-modal';
 import '../ImageUpload.css'; // Import CSS for styling
 import { Button } from '@mui/material';
+import pdfToImageBase64 from './pdfToImageBase64';
 
 const ImageUpload = () => {
   const [image, setImage] = useState(null);
