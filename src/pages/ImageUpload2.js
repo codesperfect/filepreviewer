@@ -14,7 +14,7 @@ const ImageUpload2 = () => {
   const loadFiles = async() =>{
     try {
       if (preview == null){
-      const response = await fetch('http://localhost:3081/files/');
+      const response = await fetch('http://localhost:3080/files/');
       const data = await response.json();
       setFiles(data);
       console.log(files);
@@ -29,8 +29,9 @@ const ImageUpload2 = () => {
   const fetchImageFromServer = async () => {
     try {
       if (preview == null){
-      const response = await fetch('http://localhost:3081/fetch-image/');
+      const response = await fetch('http://localhost:3080/fetch-image/');
       const data = await response.json();
+      console.log(data);
       setImage(data.Document);
       setFilename(data.id);
       setPreview(`data:image/jpeg;base64,${data.Document}`);

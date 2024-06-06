@@ -13,7 +13,7 @@ const PreviewPage = () => {
   const fetchImageFromServer = async () => {
     try {
       if (preview == null){
-      const response = await fetch('http://localhost:3081/fetch-image/');
+      const response = await fetch('http://localhost:3080/fetch-image/');
       const data = await response.json();
       setImage(data.Document);
       setFilename(data.id);

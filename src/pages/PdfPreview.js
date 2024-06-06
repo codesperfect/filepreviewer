@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../Modal';
+// import Modal from '../Modal';
+import Modal from 'react-modal';
 import Spinner from 'react-bootstrap/Spinner';
 // import { Modal, Button } from 'react-bootstrap';
 // import FilePreviewer from 'react-file-previewer';
@@ -27,7 +28,7 @@ const PdfPreview = () => {
 
   const handleShow = (docid) => {
     setloadModel(true);
-    fetch('http://localhost:3080/fetch-data') // Replace with your Node.js server endpoint
+    fetch('http://localhost:3080/api/arcticom/call_attachment_doc_download?DocumentID=73319&application_uuid=065b7662-3927-4134-820c-b4c9a3f0bab4') // Replace with your Node.js server endpoint
       .then(response => response.json())
       .then(data => {
         if (data.Document) {
@@ -65,15 +66,37 @@ const PdfPreview = () => {
         ))}
      </div>
 
-      <Modal show={showModal} handleClose={handleClose} docid={currentdocid}>
+     
+
+      <Modal
+          isOpen={showModal}
+          contentLabel="Image Preview"
+          className="modal"
+          overlayClassName="overlay"
+          style={{
+            content: {
+              width: 'auto',
+              height: 'auto',
+             
+              justifyContent: 'center',
+              alignItems: 'center',
+              background: 'rgba(255, 255, 255, 0.8)', // Semi-transparent background
+              backdropFilter: 'blur(10px)', // Blur effect
+              WebkitBackdropFilter: 'blur(10px)', // Blur effect for Safari
+              borderRadius: '10px',
+              padding: '20px',
+        top: '50%',
+        transform: 'translate(-100%, -50%)', 
+            },}}
+        >
         {pdfData && (
-          <iframe
-            src={`data:application/jpg;base64,${pdfData}`}
-            width="100%"
-            height="500px"
-            title="Preview"
-          />
-        )}
+            <iframe
+              src={`data:application/pdf;base64,${pdfData}`}
+              width="150%"
+              height="500px"
+              title="Preview"
+            />
+          )}
       </Modal>
     </div>
   );

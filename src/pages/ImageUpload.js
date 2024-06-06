@@ -14,11 +14,15 @@ const ImageUpload = () => {
   const fetchImageFromServer = async () => {
     try {
       if (preview == null){
-      const response = await fetch('http://localhost:3081/fetch-image/');
+      const response = await fetch('http://localhost:3080/fetch-image/');
+      console.log(response);
       const data = await response.json();
-      setImage(data.Document);
+      const imageBase64 = await pdfToImageBase64(data.Document);
+      console.log(imageBase64);
+      setImage(imageBase64);
       setFilename(data.id);
-      setPreview(`data:image/jpeg;base64,${data.Document}`);
+      setPreview(imageBase64)
+      // setPreview(`data:image/jpeg;base64,${data.Document}`);
       }
       setModalIsOpen(true);
     } catch (error) {

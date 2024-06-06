@@ -1,9 +1,10 @@
 // src/pdfToImageBase64.js
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
+
 // Set the workerSrc to the correct path
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.worker.min.js`;
-
+// pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 const pdfToImageBase64 = async (pdfBase64) => {
     try {
         // Decode base64 PDF
